@@ -278,6 +278,9 @@ const clickMenu = (menu) => {
 	flex-wrap: wrap;
 }
 
+// 定义项目尺寸变量
+$item-size: 100rpx;
+
 .thumb-box {
 	width: 33.333333%;
 	display: flex;
@@ -285,6 +288,22 @@ const clickMenu = (menu) => {
 	justify-content: center;
 	flex-direction: column;
 	margin-top: 20rpx;
+	padding: 10rpx;
+	box-sizing: border-box;
+	
+	// 使图片容器的宽高都基于item-size变量
+	.item-menu-image {
+		width: $item-size;
+		height: $item-size;
+	}
+	
+	.item-menu-name {
+		font-weight: normal;
+		font-size: 24rpx;
+		color: $u-main-color;
+		margin-top: 10rpx;
+		text-align: center;
+	}
 }
 
 .item-menu-image {
