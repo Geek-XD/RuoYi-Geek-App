@@ -1,6 +1,17 @@
 {
-  "name": "uni-preset-vue",
-  "version": "0.0.0",
+  "name": "ruoyi-geek-app",
+  "version": "1.0.0",
+  "description": "若依Geek管理系统",
+  "author": "Geek-XD",
+  "license": "MIT",
+  "homepage": "https://gitee.com/geek-xd",
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/geek-xd/ruoyi-geek-electron.git"
+  },
+  "engines": {
+    "node": "^18.0.0 || >=20.0.0"
+  },
   "scripts": {
     "dev:app": "uni -p app",
     "dev:app-android": "uni -p app-android",
