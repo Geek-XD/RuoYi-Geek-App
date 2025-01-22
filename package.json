@@ -7,7 +7,7 @@
   "homepage": "https://gitee.com/geek-xd",
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/geek-xd/ruoyi-geek-electron.git"
+    "url": "https://gitee.com/geek-xd/ruoyi-geek-app.git"
   },
   "engines": {
     "node": "^18.0.0 || >=20.0.0"
