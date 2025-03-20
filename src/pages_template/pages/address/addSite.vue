@@ -1,187 +1,516 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
+import tab from '@/plugins/tab';
+import citySelect from '@/components/u-city-select/u-city-select.vue';
+
+// 页面状态变量
 const show = ref(false);
+const defaultAddress = ref(false);
+const selectedTag = ref('家');
+const isEdit = ref(false); // 是否为编辑模式
+const editId = ref(''); // 编辑地址的ID
 
-const setDefault = () => { };
+// 表单数据和验证状态
+const form = reactive({
+  name: '',
+  phone: '',
+  region: '',
+  address: ''
+});
 
+const formErrors = reactive({
+  name: false,
+  phone: false,
+  region: false,
+  address: false
+});
+
+onMounted(() => {
+  // 获取传递过来的地址数据（如果是编辑模式）
+  const pages = getCurrentPages();
+  const currentPage = pages[pages.length - 1];
+  const options = currentPage.$page?.options;
+  
+  if (options && options.id) {
+    isEdit.value = true;
+    editId.value = options.id;
+    loadAddressData(options.id);
+  }
+});
+
+// 加载要编辑的地址数据
+const loadAddressData = (id: string) => {
+  try {
+    const addressList = uni.getStorageSync('addressList') || [];
+    const address = addressList.find((item: any) => item.id === id);
+    
+    if (address) {
+      form.name = address.name;
+      form.phone = address.phoneOriginal || address.phone; // 使用原始手机号，而不是隐藏处理后的号码
+      form.region = address.region;
+      form.address = address.address;
+      selectedTag.value = address.tag || '家';
+      defaultAddress.value = address.isDefault;
+    }
+  } catch (e) {
+    console.error('加载地址数据失败', e);
+  }
+};
+
+// 设置默认地址
+const setDefault = (e: any) => {
+  defaultAddress.value = e.detail.value;
+};
+
+// 显示地区选择器
 const showRegionPicker = () => {
-	show.value = true;
+  show.value = true;
+};
+
+// 确认选择地区
+const cityChange = (e) => {
+  form.region = e.province.label + e.city.label + e.area.label;
+  formErrors.region = false;
+};
+
+// 选择标签
+const selectTag = (tag: string) => {
+  selectedTag.value = tag;
+};
+
+// 表单验证
+const validateForm = () => {
+  let isValid = true;
+  
+  // 验证姓名
+  if (!form.name.trim()) {
+    formErrors.name = true;
+    isValid = false;
+  } else {
+    formErrors.name = false;
+  }
+  
+  // 验证手机号
+  const phoneReg = /^1[3-9]\d{9}$/;
+  if (!phoneReg.test(form.phone)) {
+    formErrors.phone = true;
+    isValid = false;
+  } else {
+    formErrors.phone = false;
+  }
+  
+  // 验证地区
+  if (!form.region) {
+    formErrors.region = true;
+    isValid = false;
+  } else {
+    formErrors.region = false;
+  }
+  
+  // 验证详细地址
+  if (!form.address.trim()) {
+    formErrors.address = true;
+    isValid = false;
+  } else {
+    formErrors.address = false;
+  }
+  
+  return isValid;
+};
+
+// 保存地址
+const saveAddress = () => {
+  if (!validateForm()) {
+    uni.showToast({
+      title: '请填写完整信息',
+      icon: 'none'
+    });
+    return;
+  }
+  
+  try {
+    // 获取现有地址列表
+    let addressList = uni.getStorageSync('addressList') || [];
+    
+    // 创建新地址对象
+    const addressData = {
+      id: isEdit.value ? editId.value : Date.now().toString(),
+      name: form.name,
+      phone: form.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'), // 隐藏中间4位
+      phoneOriginal: form.phone, // 保存原始手机号码用于编辑
+      region: form.region,
+      address: form.address,
+      tag: selectedTag.value,
+      isDefault: defaultAddress.value
+    };
+    
+    if (defaultAddress.value) {
+      // 如果设为默认，将其他地址设为非默认
+      addressList = addressList.map((item: any) => {
+        return { ...item, isDefault: false };
+      });
+    }
+    
+    if (isEdit.value) {
+      // 更新现有地址
+      const index = addressList.findIndex((item: any) => item.id === editId.value);
+      if (index !== -1) {
+        addressList[index] = addressData;
+      }
+    } else {
+      // 添加新地址
+      addressList.push(addressData);
+    }
+    
+    // 保存到本地存储
+    uni.setStorageSync('addressList', addressList);
+    
+    uni.showToast({
+      title: isEdit.value ? '修改成功' : '添加成功',
+      icon: 'success'
+    });
+    
+    // 延迟返回，让用户看到提示
+    setTimeout(() => {
+      tab.navigateBack();
+    }, 1000);
+  } catch (e) {
+    console.error('保存地址失败', e);
+    uni.showToast({
+      title: '保存失败',
+      icon: 'none'
+    });
+  }
+};
+
+// 删除地址
+const deleteAddress = () => {
+  if (!isEdit.value) return;
+  
+  uni.showModal({
+    title: '提示',
+    content: '确定要删除此地址吗？',
+    success: (res) => {
+      if (res.confirm) {
+        try {
+          let addressList = uni.getStorageSync('addressList') || [];
+          addressList = addressList.filter((item: any) => item.id !== editId.value);
+          uni.setStorageSync('addressList', addressList);
+          
+          uni.showToast({
+            title: '删除成功',
+            icon: 'success'
+          });
+          
+          setTimeout(() => {
+            tab.navigateBack();
+          }, 1000);
+        } catch (e) {
+          console.error('删除地址失败', e);
+          uni.showToast({
+            title: '删除失败',
+            icon: 'none'
+          });
+        }
+      }
+    }
+  });
 };
 </script>
 <template>
-	<view class="wrap">
-		<view class="top">
-			<view class="item">
-				<view class="left">收货人</view>
-				<input type="text" placeholder-class="line" placeholder="请填写收货人姓名" />
-			</view>
-			<view class="item">
-				<view class="left">手机号码</view>
-				<input type="text" placeholder-class="line" placeholder="请填写收货人手机号" />
-			</view>
-			<view class="item" @tap="showRegionPicker">
-				<view class="left">所在地区</view>
-				<input disabled type="text" placeholder-class="line" placeholder="省市区县、乡镇等" />
-			</view>
-			<view class="item address">
-				<view class="left">详细地址</view>
-				<textarea type="text" placeholder-class="line" placeholder="街道、楼牌等" />
-			</view>
-			<!-- <view class="site-clipboard">
-				<textarea placeholder-class="line" value="" placeholder="粘贴文本,可自动识别姓名和地址等" />
-				<view class="clipboard">
-					地址粘贴板
-					<u-icon name="arrow-down" class="icon" :size="20"></u-icon>
-				</view>
-			</view> -->
-		</view>
-		<view class="bottom">
-			<view class="tag">
-				<view class="left">标签</view>
-				<view class="right">
-					<text class="tags">家</text>
-					<text class="tags">公司</text>
-					<text class="tags">学校</text>
-					<view class="tags plus"><u-icon size="22" name="plus"></u-icon></view>
-				</view>
-			</view>
-			<view class="default">
-				<view class="left">
-					<view class="set">设置默认地址</view>
-					<view class="tips">提醒：每次下单会默认推荐该地址</view>
-				</view>
-				<view class="right">
-					<switch color="red" @change="setDefault" />
-				</view>
-			</view>
-		</view>
-		<u-picker mode="region" ref="uPicker" v-model="show" />
-	</view>
+  <view class="wrap">
+    <view class="container">
+      <view class="top">
+        <view class="item">
+          <view class="left">
+            <text class="required">*</text>收货人
+          </view>
+          <input 
+            type="text" 
+            v-model="form.name" 
+            placeholder-class="line" 
+            placeholder="请填写收货人姓名"
+            :class="{ 'error-input': formErrors.name }" 
+          />
+          <u-icon name="account" size="36rpx" color="#999"></u-icon>
+        </view>
+        <view class="error-msg" v-if="formErrors.name">请输入收货人姓名</view>
+        
+        <view class="item">
+          <view class="left">
+            <text class="required">*</text>手机号码
+          </view>
+          <input 
+            type="number" 
+            v-model="form.phone" 
+            placeholder-class="line" 
+            placeholder="请填写收货人手机号"
+            maxlength="11"
+            :class="{ 'error-input': formErrors.phone }" 
+          />
+          <u-icon name="phone" size="36rpx" color="#999"></u-icon>
+        </view>
+        <view class="error-msg" v-if="formErrors.phone">请输入正确的手机号码</view>
+        
+        <view class="item" @tap="showRegionPicker">
+          <view class="left">
+            <text class="required">*</text>所在地区
+          </view>
+          <input 
+            disabled 
+            v-model="form.region" 
+            type="text" 
+            placeholder-class="line" 
+            placeholder="省市区县、乡镇等"
+            :class="{ 'error-input': formErrors.region }" 
+          />
+          <u-icon name="arrow-right" size="36rpx" color="#999"></u-icon>
+        </view>
+        <view class="error-msg" v-if="formErrors.region">请选择所在地区</view>
+        
+        <view class="item address">
+          <view class="left">
+            <text class="required">*</text>详细地址
+          </view>
+          <textarea 
+            v-model="form.address" 
+            type="text" 
+            placeholder-class="line" 
+            placeholder="街道、楼牌等"
+            :class="{ 'error-textarea': formErrors.address }" 
+          />
+        </view>
+        <view class="error-msg" v-if="formErrors.address">请输入详细地址</view>
+      </view>
+      
+      <view class="bottom">
+        <view class="tag">
+          <view class="left">标签</view>
+          <view class="right">
+            <text class="tags" :class="{'active': selectedTag === '家'}" @tap="selectTag('家')">家</text>
+            <text class="tags" :class="{'active': selectedTag === '公司'}" @tap="selectTag('公司')">公司</text>
+            <text class="tags" :class="{'active': selectedTag === '学校'}" @tap="selectTag('学校')">学校</text>
+            <view class="tags plus"><u-icon size="22" name="plus" color="#999"></u-icon></view>
+          </view>
+        </view>
+        <view class="default">
+          <view class="left">
+            <view class="set">设置默认地址</view>
+            <view class="tips">提醒：每次下单会默认推荐该地址</view>
+          </view>
+          <view class="right">
+            <switch color="#fa3534" :checked="defaultAddress" @change="setDefault" />
+          </view>
+        </view>
+      </view>
+      
+      <view class="button-group">
+        <view class="save-btn" @tap="saveAddress">
+          {{ isEdit ? '保存修改' : '保存地址' }}
+        </view>
+        <view v-if="isEdit" class="delete-btn" @tap="deleteAddress">
+          删除地址
+        </view>
+      </view>
+    </view>
+    
+    <city-select v-model="show" @city-change="cityChange"></city-select>
+  </view>
 </template>
 
 <style lang="scss" scoped>
 :v-deep(.line) {
-	color: $u-light-color;
-	font-size: 28rpx;
+  color: $u-light-color;
+  font-size: 28rpx;
 }
 
 .wrap {
-	background-color: #f2f2f2;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  padding: 20rpx;
+  box-sizing: border-box;
 
-	.top {
-		background-color: #ffffff;
-		border-top: solid 2rpx $u-border-color;
-		padding: 22rpx;
+  .container {
+    border-radius: 16rpx;
+    overflow: hidden;
+    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+  }
 
-		.item {
-			display: flex;
-			font-size: 32rpx;
-			line-height: 100rpx;
-			align-items: center;
-			border-bottom: solid 2rpx $u-border-color;
+  .top {
+    background-color: #ffffff;
+    padding: 30rpx;
 
-			.left {
-				width: 180rpx;
-			}
+    .item {
+      display: flex;
+      font-size: 32rpx;
+      line-height: 100rpx;
+      align-items: center;
+      border-bottom: solid 1rpx #eeeeee;
+      position: relative;
 
-			input {
-				text-align: left;
-			}
-		}
+      .left {
+        width: 180rpx;
+        font-weight: 500;
+        color: #333;
+        
+        .required {
+          color: #fa3534;
+          margin-right: 4rpx;
+        }
+      }
 
-		.address {
-			padding: 20rpx 0;
+      input {
+        text-align: left;
+        flex: 1;
+        height: 100rpx;
+        font-size: 30rpx;
+        
+        &.error-input {
+          border-bottom: 1px solid #fa3534;
+        }
+      }
+      
+      u-icon {
+        margin-left: 10rpx;
+      }
+    }
+    
+    .error-msg {
+      color: #fa3534;
+      font-size: 24rpx;
+      padding-left: 180rpx;
+      margin-top: -10rpx;
+      margin-bottom: 10rpx;
+    }
 
-			textarea {
-				// width: 100%;
-				height: 150rpx;
-				background-color: #f7f7f7;
-				line-height: 60rpx;
-				margin: 40rpx auto;
-				padding: 20rpx;
-			}
-		}
+    .address {
+      padding: 20rpx 0;
+      align-items: flex-start;
 
-		.site-clipboard {
-			padding-right: 40rpx;
+      .left {
+        padding-top: 20rpx;
+      }
 
-			textarea {
-				// width: 100%;
-				height: 150rpx;
-				background-color: #f7f7f7;
-				line-height: 60rpx;
-				margin: 40rpx auto;
-				padding: 20rpx;
-			}
+      textarea {
+        flex: 1;
+        height: 180rpx;
+        background-color: #f9f9f9;
+        line-height: 60rpx;
+        margin: 20rpx 0;
+        padding: 20rpx;
+        border-radius: 12rpx;
+        font-size: 30rpx;
+        
+        &.error-textarea {
+          border: 1px solid #fa3534;
+        }
+      }
+    }
+  }
 
-			.clipboard {
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				font-size: 26rpx;
-				color: $u-tips-color;
-				height: 80rpx;
+  .bottom {
+    margin-top: 20rpx;
+    padding: 30rpx;
+    background-color: #ffffff;
+    font-size: 28rpx;
+    border-radius: 16rpx;
 
-				.icon {
-					margin-top: 6rpx;
-					margin-left: 10rpx;
-				}
-			}
-		}
-	}
+    .tag {
+      display: flex;
+      align-items: center;
 
-	.bottom {
-		margin-top: 20rpx;
-		padding: 40rpx;
-		padding-right: 0;
-		background-color: #ffffff;
-		font-size: 28rpx;
+      .left {
+        width: 160rpx;
+        font-weight: 500;
+        color: #333;
+      }
 
-		.tag {
-			display: flex;
+      .right {
+        display: flex;
+        flex-wrap: wrap;
+        flex: 1;
 
-			.left {
-				width: 160rpx;
-			}
+        .tags {
+          width: 150rpx;
+          padding: 20rpx 10rpx;
+          border: solid 2rpx #eeeeee;
+          text-align: center;
+          border-radius: 100rpx;
+          margin: 0 20rpx 20rpx 0;
+          display: flex;
+          font-size: 28rpx;
+          align-items: center;
+          justify-content: center;
+          color: #333;
+          line-height: 1;
+          transition: all 0.3s;
+          
+          &.active {
+            background-color: #ffebec;
+            color: #fa3534;
+            border-color: #fa3534;
+          }
+        }
 
-			.right {
-				display: flex;
-				flex-wrap: wrap;
+        .plus {
+          background-color: #f5f5f5;
+        }
+      }
+    }
 
-				.tags {
-					width: 140rpx;
-					padding: 16rpx 8rpx;
-					border: solid 2rpx $u-border-color;
-					text-align: center;
-					border-radius: 50rpx;
-					margin: 0 10rpx 20rpx;
-					display: flex;
-					font-size: 28rpx;
-					align-items: center;
-					justify-content: center;
-					color: $u-content-color;
-					line-height: 1;
-				}
+    .default {
+      margin-top: 30rpx;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20rpx;
 
-				.plus {
-					//padding: 10rpx 0;
-				}
-			}
-		}
-
-		.default {
-			margin-top: 50rpx;
-			display: flex;
-			justify-content: space-between;
-			border-bottom: solid 2rpx $u-border-color;
-			line-height: 64rpx;
-
-			.tips {
-				font-size: 24rpx;
-			}
-
-			.right {}
-		}
-	}
+      .left {
+        .set {
+          font-weight: 500;
+          color: #333;
+          font-size: 30rpx;
+        }
+        
+        .tips {
+          font-size: 24rpx;
+          color: #999;
+          margin-top: 10rpx;
+        }
+      }
+    }
+  }
+  
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    margin-top: 60rpx;
+    
+    .save-btn {
+      background: linear-gradient(90deg, #ff4034, #fa3534);
+      color: #fff;
+      height: 90rpx;
+      line-height: 90rpx;
+      text-align: center;
+      font-size: 32rpx;
+      border-radius: 45rpx;
+      font-weight: bold;
+      box-shadow: 0 10rpx 20rpx rgba(250, 53, 52, 0.2);
+      letter-spacing: 2rpx;
+    }
+    
+    .delete-btn {
+      margin-top: 30rpx;
+      background: #ffffff;
+      color: #fa3534;
+      border: 1px solid #fa3534;
+      height: 90rpx;
+      line-height: 90rpx;
+      text-align: center;
+      font-size: 32rpx;
+      border-radius: 45rpx;
+      letter-spacing: 2rpx;
+    }
+  }
 }
 </style>

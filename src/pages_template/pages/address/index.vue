@@ -1,64 +1,147 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import tab from '@/plugins/tab';
 
 const siteList = ref([]);
+const emptyStatus = ref(false);
 
-onMounted(() => {
+// 使用onShow钩子确保每次页面显示时都刷新地址列表
+onShow(() => {
 	getData();
 });
 
+// 从本地存储获取地址数据
 function getData() {
-	siteList.value = [
-		{
-			id: 1,
-			name: '游X',
-			phone: '183****5523',
-			tag: [
-				{ tagText: '默认' },
-				{ tagText: '家' }
-			],
-			site: '广东省深圳市宝安区 自由路66号'
-		},
-		{
-			id: 2,
-			name: '李XX',
-			phone: '183****5555',
-			tag: [
-				{ tagText: '公司' }
-			],
-			site: '广东省深圳市宝安区 翻身路xx号'
-		},
-		{
-			id: 3,
-			name: '王YY',
-			phone: '153****5555',
-			tag: [],
-			site: '广东省深圳市宝安区 平安路13号'
-		}
-	];
+	try {
+		const addressList = uni.getStorageSync('addressList') || [];
+		siteList.value = addressList;
+		emptyStatus.value = addressList.length === 0;
+	} catch (e) {
+		console.error('获取地址列表失败', e);
+		uni.showToast({
+			title: '获取地址列表失败',
+			icon: 'none'
+		});
+	}
 }
 
+// 跳转到添加地址页面
 function toAddSite() {
 	tab.navigateTo('/pages_template/pages/address/addSite');
 }
+
+// 跳转到编辑地址页面
+function toEditSite(id) {
+	tab.navigateTo(`/pages_template/pages/address/addSite?id=${id}`);
+}
+
+// 设置为默认地址
+function setAsDefault(id) {
+	try {
+		let addressList = uni.getStorageSync('addressList') || [];
+		addressList = addressList.map(item => {
+			return { ...item, isDefault: item.id === id };
+		});
+
+		uni.setStorageSync('addressList', addressList);
+		getData(); // 刷新列表
+
+		uni.showToast({
+			title: '设置成功',
+			icon: 'success'
+		});
+	} catch (e) {
+		console.error('设置默认地址失败', e);
+		uni.showToast({
+			title: '设置失败',
+			icon: 'none'
+		});
+	}
+}
+
+// 删除地址
+function deleteAddress(id) {
+	uni.showModal({
+		title: '提示',
+		content: '确定要删除此地址吗？',
+		success: (res) => {
+			if (res.confirm) {
+				try {
+					let addressList = uni.getStorageSync('addressList') || [];
+					addressList = addressList.filter(item => item.id !== id);
+					uni.setStorageSync('addressList', addressList);
+					getData(); // 刷新列表
+
+					uni.showToast({
+						title: '删除成功',
+						icon: 'success'
+					});
+				} catch (e) {
+					console.error('删除地址失败', e);
+					uni.showToast({
+						title: '删除失败',
+						icon: 'none'
+					});
+				}
+			}
+		}
+	});
+}
+
+// 选择并返回地址（用于从订单页面选择地址的场景）
+function selectAddress(address) {
+	const pages = getCurrentPages();
+	const prevPage = pages[pages.length - 2];
+
+	// 检查页面是否从订单页面跳转而来
+	if (prevPage && prevPage.$page?.options?.from === 'order') {
+		// 设置选中的地址并返回
+		uni.$emit('address-selected', address);
+		tab.navigateBack();
+	}
+}
 </script>
 <template>
-	<view>
-		<view class="item" v-for="(res, index) in siteList" :key="res.id">
-			<view class="top">
-				<view class="name">{{ res.name }}</view>
-				<view class="phone">{{ res.phone }}</view>
-				<view class="tag">
-					<text v-for="(item, index) in res.tag" :key="index" :class="{ red: item.tagText == '默认' }">{{
-						item.tagText }}</text>
+	<view class="address-container">
+		<!-- 空状态 -->
+		<view class="empty-state" v-if="emptyStatus">
+			<image src="/static/images/empty-address.png" mode="aspectFit" class="empty-image"></image>
+			<view class="empty-text">您还没有添加收货地址</view>
+		</view>
+
+		<!-- 地址列表 -->
+		<view v-else>
+			<view class="item" v-for="(address, index) in siteList" :key="address.id">
+				<view class="top" @tap="selectAddress(address)">
+					<view class="name">{{ address.name }}</view>
+					<view class="phone">{{ address.phone }}</view>
+					<view class="tag">
+						<text v-if="address.isDefault" class="red">默认</text>
+						<text v-if="address.tag">{{ address.tag }}</text>
+					</view>
+				</view>
+				<view class="bottom" @tap="selectAddress(address)">
+					{{ address.region }} {{ address.address }}
+				</view>
+				<view class="actions">
+					<view class="action-btn" @tap="setAsDefault(address.id)" v-if="!address.isDefault">
+						<u-icon name="checkmark-circle" color="#999" size="40rpx"></u-icon>
+						<text>设为默认</text>
+					</view>
+					<view class="action-btn" @tap="toEditSite(address.id)">
+						<u-icon name="edit-pen" color="#999" size="40rpx"></u-icon>
+						<text>编辑</text>
+					</view>
+					<view class="action-btn" @tap="deleteAddress(address.id)">
+						<u-icon name="trash" color="#999" size="40rpx"></u-icon>
+						<text>删除</text>
+					</view>
 				</view>
 			</view>
-			<view class="bottom">
-				广东省深圳市宝安区 自由路66号
-				<u-icon name="edit-pen" :size="40" color="#999999"></u-icon>
-			</view>
 		</view>
+
+		<!-- 新建地址按钮 -->
 		<view class="addSite" @tap="toAddSite">
 			<view class="add">
 				<u-icon name="plus" color="#ffffff" class="icon" :size="30"></u-icon>新建收货地址
@@ -66,68 +149,120 @@ function toAddSite() {
 		</view>
 	</view>
 </template>
+
 <style lang="scss" scoped>
+.address-container {
+	padding-bottom: 180rpx;
+	min-height: 100vh;
+	background-color: #f5f5f5;
+}
+
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding-top: 200rpx;
+
+	.empty-image {
+		width: 200rpx;
+		height: 200rpx;
+		margin-bottom: 40rpx;
+	}
+
+	.empty-text {
+		color: #999;
+		font-size: 30rpx;
+	}
+}
+
 .item {
-	padding: 40rpx 20rpx;
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+	border-radius: 16rpx;
+	margin: 20rpx;
+	padding: 30rpx;
+	background-color: #ffffff;
 
 	.top {
 		display: flex;
+		align-items: center;
+		font-size: 32rpx;
 		font-weight: bold;
-		font-size: 34rpx;
 
 		.phone {
-			margin-left: 60rpx;
+			margin-left: 40rpx;
+			color: #666666;
 		}
 
 		.tag {
-			display: flex;
-			font-weight: normal;
-			align-items: center;
+			margin-left: auto;
 
 			text {
-				display: block;
-				width: 60rpx;
-				height: 34rpx;
-				line-height: 34rpx;
-				color: #ffffff;
-				font-size: 20rpx;
-				border-radius: 6rpx;
-				text-align: center;
-				margin-left: 30rpx;
-				background-color: rgb(49, 145, 253);
+				background-color: #e0f7fa;
+				color: #00bcd4;
+				border-radius: 20rpx;
+				padding: 8rpx 16rpx;
+				font-size: 24rpx;
+				margin-left: 10rpx;
 			}
 
 			.red {
-				background-color: red
+				background-color: #ffebee;
+				color: #d32f2f;
 			}
 		}
 	}
 
 	.bottom {
-		display: flex;
 		margin-top: 20rpx;
 		font-size: 28rpx;
-		justify-content: space-between;
-		color: #999999;
+		color: #666666;
+		line-height: 1.6;
+		padding-bottom: 20rpx;
+		border-bottom: 1px solid #f0f0f0;
+	}
+
+	.actions {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 20rpx;
+
+		.action-btn {
+			display: flex;
+			align-items: center;
+			margin-left: 30rpx;
+			font-size: 26rpx;
+			color: #666;
+
+			text {
+				margin-left: 6rpx;
+			}
+		}
 	}
 }
 
 .addSite {
-	display: flex;
-	justify-content: space-around;
-	width: 600rpx;
+	position: fixed;
+	bottom: 40rpx;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 80%;
+	height: 100rpx;
 	line-height: 100rpx;
-	position: absolute;
-	bottom: 30rpx;
-	left: 80rpx;
-	background-color: red;
-	border-radius: 60rpx;
-	font-size: 30rpx;
+	background: linear-gradient(90deg, #ff4034, #fa3534);
+	border-radius: 50rpx;
+	text-align: center;
+	color: #ffffff;
+	font-size: 32rpx;
+	box-shadow: 0 8rpx 16rpx rgba(250, 53, 52, 0.2);
+	z-index: 100;
 
 	.add {
 		display: flex;
 		align-items: center;
-		color: #ffffff;
+		justify-content: center;
+		height: 100%;
+		width: 100%;
 
 		.icon {
 			margin-right: 10rpx;
