@@ -2,22 +2,24 @@
 import { ref, reactive, onMounted } from 'vue';
 import tab from '@/plugins/tab';
 import citySelect from '@/components/u-city-select/u-city-select.vue';
+import { useAddressEditPage } from './index';
 
-// 页面状态变量
-const show = ref(false);
-const defaultAddress = ref(false);
-const selectedTag = ref('家');
-const isEdit = ref(false); // 是否为编辑模式
-const editId = ref(''); // 编辑地址的ID
+// 使用编辑页面Hook
+const {
+  isEdit,
+  form,
+  defaultAddress,
+  selectedTag,
+  addressTags,
+  initEditPage,
+  saveAddress,
+  deleteAddress
+} = useAddressEditPage();
 
-// 表单数据和验证状态
-const form = reactive({
-  name: '',
-  phone: '',
-  region: '',
-  address: ''
-});
+// 地区选择器显示状态
+const showRegionPicker = ref(false);
 
+// 表单错误状态 - 移到Vue组件中
 const formErrors = reactive({
   name: false,
   phone: false,
@@ -25,101 +27,69 @@ const formErrors = reactive({
   address: false
 });
 
+// 重置表单错误
+function resetFormErrors() {
+  formErrors.name = false;
+  formErrors.phone = false;
+  formErrors.region = false;
+  formErrors.address = false;
+}
+
+// 初始化页面数据
 onMounted(() => {
-  // 获取传递过来的地址数据（如果是编辑模式）
   const pages = getCurrentPages();
-  const currentPage = pages[pages.length - 1];
+  const currentPage: any = pages[pages.length - 1];
   const options = currentPage.$page?.options;
-  
-  if (options && options.id) {
-    isEdit.value = true;
-    editId.value = options.id;
-    loadAddressData(options.id);
-  }
+
+  // 调用hook的初始化方法
+  initEditPage(options?.id);
+  // 重置表单错误状态
+  resetFormErrors();
 });
 
-// 加载要编辑的地址数据
-const loadAddressData = (id: string) => {
-  try {
-    const addressList = uni.getStorageSync('addressList') || [];
-    const address = addressList.find((item: any) => item.id === id);
-    
-    if (address) {
-      form.name = address.name;
-      form.phone = address.phoneOriginal || address.phone; // 使用原始手机号，而不是隐藏处理后的号码
-      form.region = address.region;
-      form.address = address.address;
-      selectedTag.value = address.tag || '家';
-      defaultAddress.value = address.isDefault;
-    }
-  } catch (e) {
-    console.error('加载地址数据失败', e);
-  }
-};
-
 // 设置默认地址
-const setDefault = (e: any) => {
+function handleSetDefault(e: any) {
   defaultAddress.value = e.detail.value;
-};
+}
 
 // 显示地区选择器
-const showRegionPicker = () => {
-  show.value = true;
-};
+function handleShowRegionPicker() {
+  showRegionPicker.value = true;
+}
 
 // 确认选择地区
-const cityChange = (e) => {
+function handleCityChange(e: any) {
   form.region = e.province.label + e.city.label + e.area.label;
   formErrors.region = false;
-};
+}
 
 // 选择标签
-const selectTag = (tag: string) => {
+function handleSelectTag(tag: string) {
   selectedTag.value = tag;
-};
+}
 
 // 表单验证
-const validateForm = () => {
-  let isValid = true;
-  
+function validateForm(): boolean {
   // 验证姓名
-  if (!form.name.trim()) {
-    formErrors.name = true;
-    isValid = false;
-  } else {
-    formErrors.name = false;
-  }
-  
+  formErrors.name = !form.name.trim();
+
   // 验证手机号
   const phoneReg = /^1[3-9]\d{9}$/;
-  if (!phoneReg.test(form.phone)) {
-    formErrors.phone = true;
-    isValid = false;
-  } else {
-    formErrors.phone = false;
-  }
-  
+  formErrors.phone = !phoneReg.test(form.phone);
+
   // 验证地区
-  if (!form.region) {
-    formErrors.region = true;
-    isValid = false;
-  } else {
-    formErrors.region = false;
-  }
-  
+  formErrors.region = !form.region;
+
   // 验证详细地址
-  if (!form.address.trim()) {
-    formErrors.address = true;
-    isValid = false;
-  } else {
-    formErrors.address = false;
-  }
-  
-  return isValid;
-};
+  formErrors.address = !form.address.trim();
+
+  // 如果有任何错误，返回false
+  return !(formErrors.name || formErrors.phone || formErrors.region || formErrors.address);
+}
 
 // 保存地址
-const saveAddress = () => {
+function handleSaveAddress() {
+  // 使用本地验证方法
   if (!validateForm()) {
     uni.showToast({
       title: '请填写完整信息',
@@ -127,53 +97,26 @@ const saveAddress = () => {
     });
     return;
   }
-  
+
   try {
-    // 获取现有地址列表
-    let addressList = uni.getStorageSync('addressList') || [];
-    
-    // 创建新地址对象
-    const addressData = {
-      id: isEdit.value ? editId.value : Date.now().toString(),
-      name: form.name,
-      phone: form.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'), // 隐藏中间4位
-      phoneOriginal: form.phone, // 保存原始手机号码用于编辑
-      region: form.region,
-      address: form.address,
-      tag: selectedTag.value,
-      isDefault: defaultAddress.value
-    };
-    
-    if (defaultAddress.value) {
-      // 如果设为默认，将其他地址设为非默认
-      addressList = addressList.map((item: any) => {
-        return { ...item, isDefault: false };
+    const success = saveAddress();
+
+    if (success) {
+      uni.showToast({
+        title: isEdit.value ? '修改成功' : '添加成功',
+        icon: 'success'
+      });
+
+      // 延迟返回，让用户看到提示
+      setTimeout(() => {
+        tab.navigateBack();
+      }, 1000);
+    } else {
+      uni.showToast({
+        title: '保存失败',
+        icon: 'none'
       });
     }
-    
-    if (isEdit.value) {
-      // 更新现有地址
-      const index = addressList.findIndex((item: any) => item.id === editId.value);
-      if (index !== -1) {
-        addressList[index] = addressData;
-      }
-    } else {
-      // 添加新地址
-      addressList.push(addressData);
-    }
-    
-    // 保存到本地存储
-    uni.setStorageSync('addressList', addressList);
-    
-    uni.showToast({
-      title: isEdit.value ? '修改成功' : '添加成功',
-      icon: 'success'
-    });
-    
-    // 延迟返回，让用户看到提示
-    setTimeout(() => {
-      tab.navigateBack();
-    }, 1000);
   } catch (e) {
     console.error('保存地址失败', e);
     uni.showToast({
@@ -181,30 +124,35 @@ const saveAddress = () => {
       icon: 'none'
     });
   }
-};
+}
 
 // 删除地址
-const deleteAddress = () => {
+function handleDeleteAddress() {
   if (!isEdit.value) return;
-  
+
   uni.showModal({
     title: '提示',
     content: '确定要删除此地址吗？',
     success: (res) => {
       if (res.confirm) {
         try {
-          let addressList = uni.getStorageSync('addressList') || [];
-          addressList = addressList.filter((item: any) => item.id !== editId.value);
-          uni.setStorageSync('addressList', addressList);
-          
-          uni.showToast({
-            title: '删除成功',
-            icon: 'success'
-          });
-          
-          setTimeout(() => {
-            tab.navigateBack();
-          }, 1000);
+          const success = deleteAddress();
+
+          if (success) {
+            uni.showToast({
+              title: '删除成功',
+              icon: 'success'
+            });
+
+            setTimeout(() => {
+              tab.navigateBack();
+            }, 1000);
+          } else {
+            uni.showToast({
+              title: '删除失败',
+              icon: 'none'
+            });
+          }
         } catch (e) {
           console.error('删除地址失败', e);
           uni.showToast({
@@ -215,8 +163,9 @@ const deleteAddress = () => {
       }
     }
   });
-};
+}
 </script>
+
 <template>
   <view class="wrap">
     <view class="container">
@@ -225,71 +174,50 @@ const deleteAddress = () => {
           <view class="left">
             <text class="required">*</text>收货人
           </view>
-          <input 
-            type="text" 
-            v-model="form.name" 
-            placeholder-class="line" 
-            placeholder="请填写收货人姓名"
-            :class="{ 'error-input': formErrors.name }" 
-          />
+          <input type="text" v-model="form.name" placeholder-class="line" placeholder="请填写收货人姓名"
+            :class="{ 'error-input': formErrors.name }" />
           <u-icon name="account" size="36rpx" color="#999"></u-icon>
         </view>
         <view class="error-msg" v-if="formErrors.name">请输入收货人姓名</view>
-        
+
         <view class="item">
           <view class="left">
             <text class="required">*</text>手机号码
           </view>
-          <input 
-            type="number" 
-            v-model="form.phone" 
-            placeholder-class="line" 
-            placeholder="请填写收货人手机号"
-            maxlength="11"
-            :class="{ 'error-input': formErrors.phone }" 
-          />
+          <input type="number" v-model="form.phone" placeholder-class="line" placeholder="请填写收货人手机号" maxlength="11"
+            :class="{ 'error-input': formErrors.phone }" />
           <u-icon name="phone" size="36rpx" color="#999"></u-icon>
         </view>
         <view class="error-msg" v-if="formErrors.phone">请输入正确的手机号码</view>
-        
-        <view class="item" @tap="showRegionPicker">
+
+        <view class="item" @tap="handleShowRegionPicker">
           <view class="left">
             <text class="required">*</text>所在地区
           </view>
-          <input 
-            disabled 
-            v-model="form.region" 
-            type="text" 
-            placeholder-class="line" 
-            placeholder="省市区县、乡镇等"
-            :class="{ 'error-input': formErrors.region }" 
-          />
+          <input disabled v-model="form.region" type="text" placeholder-class="line" placeholder="省市区县、乡镇等"
+            :class="{ 'error-input': formErrors.region }" />
           <u-icon name="arrow-right" size="36rpx" color="#999"></u-icon>
         </view>
         <view class="error-msg" v-if="formErrors.region">请选择所在地区</view>
-        
+
         <view class="item address">
           <view class="left">
             <text class="required">*</text>详细地址
           </view>
-          <textarea 
-            v-model="form.address" 
-            type="text" 
-            placeholder-class="line" 
-            placeholder="街道、楼牌等"
-            :class="{ 'error-textarea': formErrors.address }" 
-          />
+          <textarea v-model="form.address" type="text" placeholder-class="line" placeholder="街道、楼牌等"
+            :class="{ 'error-textarea': formErrors.address }" />
         </view>
         <view class="error-msg" v-if="formErrors.address">请输入详细地址</view>
       </view>
-      
+
       <view class="bottom">
         <view class="tag">
           <view class="left">标签</view>
           <view class="right">
-            <text class="tags" :class="{'active': selectedTag === '家'}" @tap="selectTag('家')">家</text>
-            <text class="tags" :class="{'active': selectedTag === '公司'}" @tap="selectTag('公司')">公司</text>
-            <text class="tags" :class="{'active': selectedTag === '学校'}" @tap="selectTag('学校')">学校</text>
+            <text v-for="tag in addressTags" :key="tag" class="tags" :class="{ 'active': selectedTag === tag }"
+              @tap="handleSelectTag(tag)">
+              {{ tag }}
+            </text>
             <view class="tags plus"><u-icon size="22" name="plus" color="#999"></u-icon></view>
           </view>
         </view>
@@ -299,22 +227,22 @@ const deleteAddress = () => {
             <view class="tips">提醒：每次下单会默认推荐该地址</view>
           </view>
           <view class="right">
-            <switch color="#fa3534" :checked="defaultAddress" @change="setDefault" />
+            <switch color="#fa3534" :checked="defaultAddress" @change="handleSetDefault" />
           </view>
         </view>
       </view>
-      
+
       <view class="button-group">
-        <view class="save-btn" @tap="saveAddress">
+        <view class="save-btn" @tap="handleSaveAddress">
           {{ isEdit ? '保存修改' : '保存地址' }}
         </view>
-        <view v-if="isEdit" class="delete-btn" @tap="deleteAddress">
+        <view v-if="isEdit" class="delete-btn" @tap="handleDeleteAddress">
           删除地址
         </view>
       </view>
     </view>
-    
-    <city-select v-model="show" @city-change="cityChange"></city-select>
+
+    <city-select v-model="showRegionPicker" @city-change="handleCityChange"></city-select>
   </view>
 </template>
 
@@ -352,7 +280,7 @@ const deleteAddress = () => {
         width: 180rpx;
         font-weight: 500;
         color: #333;
-        
+
         .required {
           color: #fa3534;
           margin-right: 4rpx;
@@ -364,17 +292,17 @@ const deleteAddress = () => {
         flex: 1;
         height: 100rpx;
         font-size: 30rpx;
-        
+
         &.error-input {
           border-bottom: 1px solid #fa3534;
         }
       }
-      
+
       u-icon {
         margin-left: 10rpx;
       }
     }
-    
+
     .error-msg {
       color: #fa3534;
       font-size: 24rpx;
@@ -400,7 +328,7 @@ const deleteAddress = () => {
         padding: 20rpx;
         border-radius: 12rpx;
         font-size: 30rpx;
-        
+
         &.error-textarea {
           border: 1px solid #fa3534;
         }
@@ -444,7 +372,7 @@ const deleteAddress = () => {
           color: #333;
           line-height: 1;
           transition: all 0.3s;
-          
+
           &.active {
             background-color: #ffebec;
             color: #fa3534;
@@ -471,7 +399,7 @@ const deleteAddress = () => {
           color: #333;
           font-size: 30rpx;
         }
-        
+
         .tips {
           font-size: 24rpx;
           color: #999;
@@ -480,12 +408,12 @@ const deleteAddress = () => {
       }
     }
   }
-  
+
   .button-group {
     display: flex;
     flex-direction: column;
     margin-top: 60rpx;
-    
+
     .save-btn {
       background: linear-gradient(90deg, #ff4034, #fa3534);
       color: #fff;
@@ -498,7 +426,7 @@ const deleteAddress = () => {
       box-shadow: 0 10rpx 20rpx rgba(250, 53, 52, 0.2);
       letter-spacing: 2rpx;
     }
-    
+
     .delete-btn {
       margin-top: 30rpx;
       background: #ffffff;

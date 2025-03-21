@@ -56,169 +56,191 @@
 	</u-popup>
 </template>
 
-<script>
-import provinces from "./province.js";
-import citys from "./city.js";
-import areas from "./area.js";
-/**
- * city-select 省市区级联选择器
- * @property {String Number} z-index 弹出时的z-index值（默认1075）
- * @property {Boolean} mask-close-able 是否允许通过点击遮罩关闭Picker（默认true）
- * @property {String} default-region 默认选中的地区，中文形式
- * @property {String} default-code 默认选中的地区，编号形式
- */
-export default {
-	name: 'u-city-select',
-	props: {
-		// 通过双向绑定控制组件的弹出与收起
-		modelValue: {
-			type: Boolean,
-			default: false
-		},
-		// 默认显示的地区，可传类似["河北省", "秦皇岛市", "北戴河区"]
-		defaultRegion: {
-			type: Array,
-			default() {
-				return [];
-			}
-		},
-		// 默认显示地区的编码，defaultRegion和areaCode同时存在，areaCode优先，可传类似["13", "1303", "130304"]
-		areaCode: {
-			type: Array,
-			default() {
-				return [];
-			}
-		},
-		// 是否允许通过点击遮罩关闭Picker
-		maskCloseAble: {
-			type: Boolean,
-			default: true
-		},
-		// 弹出的z-index值
-		zIndex: {
-			type: [String, Number],
-			default: 0
-		}
+<script setup lang="ts">
+import { ref, computed, onMounted, PropType } from 'vue';
+import provincesSource from "./province.js";
+import citysSource from "./city.js";
+import areasSource from "./area.js";
+
+// 定义接口
+interface Region {
+	label: string;
+	value: string;
+}
+
+interface CitySelectResult {
+	province: Region;
+	city: Region;
+	area: Region;
+}
+
+interface TabItem {
+	name: string;
+}
+
+// Props 定义
+const props = defineProps({
+	// 通过双向绑定控制组件的弹出与收起
+	modelValue: {
+		type: Boolean,
+		default: false
 	},
-	data() {
-		return {
-			cityValue: "",
-			isChooseP: false, //是否已经选择了省
-			province: 0, //省级下标
-			provinces: provinces,
-			isChooseC: false, //是否已经选择了市
-			city: 0, //市级下标
-			citys: citys[0],
-			isChooseA: false, //是否已经选择了区
-			area: 0, //区级下标
-			areas: areas[0][0],
-			tabsIndex: 0,
-		}
+	// 默认显示的地区，可传类似["河北省", "秦皇岛市", "北戴河区"]
+	defaultRegion: {
+		type: Array as PropType<string[]>,
+		default: () => []
 	},
-	mounted() {
-		this.init();
+	// 默认显示地区的编码，defaultRegion和areaCode同时存在，areaCode优先，可传类似["13", "1303", "130304"]
+	areaCode: {
+		type: Array as PropType<string[]>,
+		default: () => []
 	},
-	computed: {
-		isChange() {
-			return this.tabsIndex > 1;
-		},
-		genTabsList() {
-			let tabsList = [{
-				name: "请选择"
-			}];
-			if (this.isChooseP) {
-				tabsList[0]['name'] = this.provinces[this.province]['label'];
-				tabsList[1] = {
-					name: "请选择"
-				};
-			}
-			if (this.isChooseC) {
-				tabsList[1]['name'] = this.citys[this.city]['label'];
-				tabsList[2] = {
-					name: "请选择"
-				};
-			}
-			if (this.isChooseA) {
-				tabsList[2]['name'] = this.areas[this.area]['label'];
-			}
-			return tabsList;
-		},
-		uZIndex() {
-			// 如果用户有传递z-index值，优先使用
-			return this.zIndex ? this.zIndex : this.$u.zIndex.popup;
-		}
+	// 是否允许通过点击遮罩关闭Picker
+	maskCloseAble: {
+		type: Boolean,
+		default: true
 	},
-	emits: ['city-change'],
-	methods: {
-		init() {
-			if (this.areaCode.length == 3) {
-				this.setProvince("", this.areaCode[0]);
-				this.setCity("", this.areaCode[1]);
-				this.setArea("", this.areaCode[2]);
-			} else if (this.defaultRegion.length == 3) {
-				this.setProvince(this.defaultRegion[0], "");
-				this.setCity(this.defaultRegion[1], "");
-				this.setArea(this.defaultRegion[2], "");
-			};
-		},
-		setProvince(label = "", value = "") {
-			this.provinces.map((v, k) => {
-				if (value ? v.value == value : v.label == label) {
-					this.provinceChange(k);
-				}
-			})
-		},
-		setCity(label = "", value = "") {
-			this.citys.map((v, k) => {
-				if (value ? v.value == value : v.label == label) {
-					this.cityChange(k);
-				}
-			})
-		},
-		setArea(label = "", value = "") {
-			this.areas.map((v, k) => {
-				if (value ? v.value == value : v.label == label) {
-					this.isChooseA = true;
-					this.area = k;
-				}
-			})
-		},
-		close() {
-			this.$emit('update:modelValue', false);
-			this.$emit('close');
-		},
-		tabsChange(value) {
-			this.tabsIndex = value.index;
-		},
-		provinceChange(index) {
-			this.isChooseP = true;
-			this.isChooseC = false;
-			this.isChooseA = false;
-			this.province = index;
-			this.citys = citys[index];
-			this.tabsIndex = 1;
-		},
-		cityChange(index) {
-			this.isChooseC = true;
-			this.isChooseA = false;
-			this.city = index;
-			this.areas = areas[this.province][index];
-			this.tabsIndex = 2;
-		},
-		areaChange(index) {
-			this.isChooseA = true;
-			this.area = index;
-			let result = {};
-			result.province = this.provinces[this.province];
-			result.city = this.citys[this.city];
-			result.area = this.areas[this.area];
-			this.$emit('city-change', result);
-			this.close();
-		}
+	// 弹出的z-index值
+	zIndex: {
+		type: [String, Number],
+		default: 0
+	}
+});
+
+// 事件定义
+const emit = defineEmits<{
+	(e: 'update:modelValue', value: boolean): void;
+	(e: 'close'): void;
+	(e: 'city-change', result: CitySelectResult): void;
+}>();
+
+const cityValue = ref("");
+const isChooseP = ref(false); // 是否已经选择了省
+const province = ref(0); // 省级下标
+const provinces = ref<Region[]>(provincesSource);
+const isChooseC = ref(false); // 是否已经选择了市
+const city = ref(0); // 市级下标
+const citys = ref<Region[]>(citysSource[0]);
+const isChooseA = ref(false); // 是否已经选择了区
+const area = ref(0); // 区级下标
+const areas = ref<Region[]>(areasSource[0][0]);
+const tabsIndex = ref(0);
+const tabs = ref();
+
+// 计算属性
+const isChange = computed(() => {
+	return tabsIndex.value > 1;
+});
+
+const genTabsList = computed((): TabItem[] => {
+	let tabsList: TabItem[] = [{
+		name: "请选择"
+	}];
+
+	if (isChooseP.value) {
+		tabsList[0].name = provinces.value[province.value].label;
+		tabsList[1] = {
+			name: "请选择"
+		};
 	}
 
-}
+	if (isChooseC.value) {
+		tabsList[1].name = citys.value[city.value].label;
+		tabsList[2] = {
+			name: "请选择"
+		};
+	}
+
+	if (isChooseA.value) {
+		tabsList[2].name = areas.value[area.value].label;
+	}
+
+	return tabsList;
+});
+
+const uZIndex = computed(() => {
+	// 如果用户有传递z-index值，优先使用
+	return props.zIndex ? props.zIndex : 1075; // 假设$u.zIndex.popup为1075
+});
+
+// 方法
+const setProvince = (label = "", value = "") => {
+	provinces.value.map((v, k) => {
+		if (value ? v.value == value : v.label == label) {
+			provinceChange(k);
+		}
+	});
+};
+
+const setCity = (label = "", value = "") => {
+	citys.value.map((v, k) => {
+		if (value ? v.value == value : v.label == label) {
+			cityChange(k);
+		}
+	});
+};
+
+const setArea = (label = "", value = "") => {
+	areas.value.map((v, k) => {
+		if (value ? v.value == value : v.label == label) {
+			isChooseA.value = true;
+			area.value = k;
+		}
+	});
+};
+
+const close = () => {
+	emit('update:modelValue', false);
+	emit('close');
+};
+
+const tabsChange = (value: { index: number }) => {
+	tabsIndex.value = value.index;
+};
+
+const provinceChange = (index: number) => {
+	isChooseP.value = true;
+	isChooseC.value = false;
+	isChooseA.value = false;
+	province.value = index;
+	citys.value = citysSource[index];
+	tabsIndex.value = 1;
+};
+
+const cityChange = (index: number) => {
+	isChooseC.value = true;
+	isChooseA.value = false;
+	city.value = index;
+	areas.value = areasSource[province.value][index];
+	tabsIndex.value = 2;
+};
+
+const areaChange = (index: number) => {
+	isChooseA.value = true;
+	area.value = index;
+	const result: CitySelectResult = {
+		province: provinces.value[province.value],
+		city: citys.value[city.value],
+		area: areas.value[area.value]
+	};
+	emit('city-change', result);
+	close();
+};
+
+// 生命周期钩子
+onMounted(() => {
+	if (props.areaCode.length == 3) {
+		setProvince("", props.areaCode[0]);
+		setCity("", props.areaCode[1]);
+		setArea("", props.areaCode[2]);
+	} else if (props.defaultRegion.length == 3) {
+		setProvince(props.defaultRegion[0], "");
+		setCity(props.defaultRegion[1], "");
+		setArea(props.defaultRegion[2], "");
+	}
+});
 </script>
+
 <style lang="scss">
 .area-box {
 	width: 100%;

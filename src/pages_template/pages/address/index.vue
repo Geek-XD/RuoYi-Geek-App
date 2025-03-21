@@ -1,30 +1,14 @@
-<script setup>
-import { ref, onMounted } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+<script setup lang="ts">
 import tab from '@/plugins/tab';
+import { AddressInfo, useAddressListPage } from './index';
 
-const siteList = ref([]);
-const emptyStatus = ref(false);
-
-// 使用onShow钩子确保每次页面显示时都刷新地址列表
-onShow(() => {
-	getData();
-});
-
-// 从本地存储获取地址数据
-function getData() {
-	try {
-		const addressList = uni.getStorageSync('addressList') || [];
-		siteList.value = addressList;
-		emptyStatus.value = addressList.length === 0;
-	} catch (e) {
-		console.error('获取地址列表失败', e);
-		uni.showToast({
-			title: '获取地址列表失败',
-			icon: 'none'
-		});
-	}
-}
+// 使用列表页面Hook
+const {
+	addressList,
+	emptyStatus,
+	setDefaultAddress,
+	deleteAddress
+} = useAddressListPage();
 
 // 跳转到添加地址页面
 function toAddSite() {
@@ -32,25 +16,26 @@ function toAddSite() {
 }
 
 // 跳转到编辑地址页面
-function toEditSite(id) {
+function toEditSite(id: string) {
 	tab.navigateTo(`/pages_template/pages/address/addSite?id=${id}`);
 }
 
 // 设置为默认地址
-function setAsDefault(id) {
+function handleSetDefault(id: string) {
 	try {
-		let addressList = uni.getStorageSync('addressList') || [];
-		addressList = addressList.map(item => {
-			return { ...item, isDefault: item.id === id };
-		});
+		const success = setDefaultAddress(id);
 
-		uni.setStorageSync('addressList', addressList);
-		getData(); // 刷新列表
-
-		uni.showToast({
-			title: '设置成功',
-			icon: 'success'
-		});
+		if (success) {
+			uni.showToast({
+				title: '设置成功',
+				icon: 'success'
+			});
+		} else {
+			uni.showToast({
+				title: '设置失败',
+				icon: 'none'
+			});
+		}
 	} catch (e) {
 		console.error('设置默认地址失败', e);
 		uni.showToast({
@@ -61,22 +46,26 @@ function setAsDefault(id) {
 }
 
 // 删除地址
-function deleteAddress(id) {
+function handleDeleteAddress(id: string) {
 	uni.showModal({
 		title: '提示',
 		content: '确定要删除此地址吗？',
 		success: (res) => {
 			if (res.confirm) {
 				try {
-					let addressList = uni.getStorageSync('addressList') || [];
-					addressList = addressList.filter(item => item.id !== id);
-					uni.setStorageSync('addressList', addressList);
-					getData(); // 刷新列表
+					const success = deleteAddress(id);
 
-					uni.showToast({
-						title: '删除成功',
-						icon: 'success'
-					});
+					if (success) {
+						uni.showToast({
+							title: '删除成功',
+							icon: 'success'
+						});
+					} else {
+						uni.showToast({
+							title: '删除失败',
+							icon: 'none'
+						});
+					}
 				} catch (e) {
 					console.error('删除地址失败', e);
 					uni.showToast({
@@ -90,9 +79,9 @@ function deleteAddress(id) {
 }
 
 // 选择并返回地址（用于从订单页面选择地址的场景）
-function selectAddress(address) {
+function selectAddress(address: AddressInfo) {
 	const pages = getCurrentPages();
-	const prevPage = pages[pages.length - 2];
+	const prevPage: any = pages[pages.length - 2];
 
 	// 检查页面是否从订单页面跳转而来
 	if (prevPage && prevPage.$page?.options?.from === 'order') {
@@ -102,6 +91,7 @@ function selectAddress(address) {
 	}
 }
 </script>
+
 <template>
 	<view class="address-container">
 		<!-- 空状态 -->
@@ -112,7 +102,7 @@ function selectAddress(address) {
 
 		<!-- 地址列表 -->
 		<view v-else>
-			<view class="item" v-for="(address, index) in siteList" :key="address.id">
+			<view class="item" v-for="(address, index) in addressList" :key="address.id">
 				<view class="top" @tap="selectAddress(address)">
 					<view class="name">{{ address.name }}</view>
 					<view class="phone">{{ address.phone }}</view>
@@ -125,7 +115,7 @@ function selectAddress(address) {
 					{{ address.region }} {{ address.address }}
 				</view>
 				<view class="actions">
-					<view class="action-btn" @tap="setAsDefault(address.id)" v-if="!address.isDefault">
+					<view class="action-btn" @tap="handleSetDefault(address.id)" v-if="!address.isDefault">
 						<u-icon name="checkmark-circle" color="#999" size="40rpx"></u-icon>
 						<text>设为默认</text>
 					</view>
@@ -133,7 +123,7 @@ function selectAddress(address) {
 						<u-icon name="edit-pen" color="#999" size="40rpx"></u-icon>
 						<text>编辑</text>
 					</view>
-					<view class="action-btn" @tap="deleteAddress(address.id)">
+					<view class="action-btn" @tap="handleDeleteAddress(address.id)">
 						<u-icon name="trash" color="#999" size="40rpx"></u-icon>
 						<text>删除</text>
 					</view>

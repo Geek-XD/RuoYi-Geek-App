@@ -1,11 +1,6 @@
 <script setup>
 import { ref } from 'vue';
 import citySelect from '@/components/u-city-select/u-city-select.vue';
-
-const height = ref(30);
-const bgColor = ref(uni.$u.color.bgColor);
-const marginTop = ref(30);
-const marginBottom = ref(30);
 const value = ref(false);
 const input = ref('');
 

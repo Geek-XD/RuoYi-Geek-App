@@ -126,29 +126,43 @@ const getComment = () => {
 .comment {
 	display: flex;
 	padding: 30rpx;
+	margin-bottom: 20rpx;
+	background-color: #ffffff;
+	border-radius: 12rpx;
+	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+	transition: all 0.3s;
+	
+	&:hover {
+		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+	}
 
 	.left {
 		image {
-			width: 64rpx;
-			height: 64rpx;
+			width: 72rpx;
+			height: 72rpx;
 			border-radius: 50%;
 			background-color: #f2f2f2;
+			border: 2rpx solid #eaeaea;
+			box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
 		}
 	}
 
 	.right {
 		flex: 1;
-		padding-left: 20rpx;
-		font-size: 30rpx;
+		padding-left: 24rpx;
+		font-size: 28rpx;
+		line-height: 1.6;
 
 		.top {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			margin-bottom: 10rpx;
+			margin-bottom: 12rpx;
 
 			.name {
 				color: #5677fc;
+				font-weight: 500;
+				font-size: 30rpx;
 			}
 
 			.like {
@@ -156,9 +170,16 @@ const getComment = () => {
 				align-items: center;
 				color: #9a9a9a;
 				font-size: 26rpx;
+				padding: 4rpx 12rpx;
+				border-radius: 30rpx;
+				transition: all 0.2s;
+				
+				&:active {
+					background-color: rgba(86, 119, 252, 0.1);
+				}
 
 				.num {
-					margin-right: 4rpx;
+					margin-right: 8rpx;
 					color: #9a9a9a;
 				}
 			}
@@ -173,20 +194,32 @@ const getComment = () => {
 		}
 
 		.content {
-			margin-bottom: 10rpx;
+			margin-bottom: 16rpx;
+			color: #333333;
+			line-height: 1.8;
 		}
 
 		.reply-box {
-			background-color: rgb(242, 242, 242);
+			background-color: #f7f7f7;
 			border-radius: 12rpx;
+			margin-top: 12rpx;
+			margin-bottom: 8rpx;
+			overflow: hidden;
 
 			.item {
 				padding: 20rpx;
-				border-bottom: solid 2rpx $u-border-color;
+				border-bottom: solid 1rpx rgba(0, 0, 0, 0.05);
 
 				.username {
-					font-size: 24rpx;
-					color: #999999;
+					font-size: 26rpx;
+					color: #5677fc;
+					font-weight: 500;
+					margin-bottom: 6rpx;
+				}
+				
+				.text {
+					font-size: 28rpx;
+					color: #333333;
 				}
 			}
 
@@ -195,6 +228,12 @@ const getComment = () => {
 				display: flex;
 				color: #5677fc;
 				align-items: center;
+				font-size: 26rpx;
+				transition: all 0.2s;
+				
+				&:active {
+					background-color: rgba(86, 119, 252, 0.1);
+				}
 
 				.more {
 					margin-left: 6rpx;
@@ -207,10 +246,18 @@ const getComment = () => {
 			display: flex;
 			font-size: 24rpx;
 			color: #9a9a9a;
+			align-items: center;
 
 			.reply {
 				color: #5677fc;
-				margin-left: 10rpx;
+				margin-left: 16rpx;
+				padding: 4rpx 16rpx;
+				border-radius: 30rpx;
+				transition: all 0.2s;
+				
+				&:active {
+					background-color: rgba(86, 119, 252, 0.1);
+				}
 			}
 		}
 	}
