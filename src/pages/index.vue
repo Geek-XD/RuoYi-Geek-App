@@ -2,7 +2,7 @@
   <view class="content">
     <image class="logo" src="@/static/logo.png"></image>
     <view class="text-area">
-      <text class="title">Hello RuoYi-Vue</text>
+      <text class="title"> RuoYi-Geek-App</text>
     </view>
     <view class="text-area">
       <up-text type="primary" text="uview-plus"></up-text>
