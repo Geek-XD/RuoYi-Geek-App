@@ -1,3 +1,167 @@
+<script setup>
+import { ref, reactive, watch, onMounted } from 'vue';
+import ProgressBar from "../../components/progress-bar/progress-bar.vue"
+import dataOne from '../../static/json/finance/1.json';
+import expendDetail from '../../static/json/finance/2.json';
+
+import Config from '../../static/js/config'
+import Common from '../../static/js/common'
+
+let _now = new Date();
+let now_time = {};
+now_time.year = _now.getFullYear()
+now_time.month = _now.getMonth() + 1
+now_time.day = _now.getDay()
+
+// 数据定义
+const info = ref('大便超人'); // 用户数据
+const scrollHeight = ref("600px"); // 数据展示体高度
+const isCanvas2d = ref(Config.ISCANVAS2D);
+const historyData = ref({});
+const expendCount = ref(0);
+const delayload = ref(false);
+
+const nowTime = reactive({
+  year: now_time.year,
+  month: now_time.month,
+  day: now_time.day
+});
+
+const historyBtn = reactive([
+  {
+    name: "支出",
+    state: 1,
+    type: "expend"
+  },
+  {
+    name: "收入",
+    state: 0,
+    type: "income"
+  },
+  {
+    name: "结余",
+    state: 0,
+    type: "remaining"
+  }
+]);
+
+const myWallet = reactive({
+  remaining: 3000.34,
+  expend: 5240.32,
+  income: 8240.66
+});
+
+const extendRank = reactive([
+  {
+    name: "腐败聚会",
+    desc: now_time.month + "月6日12:34-跨界空间轰趴",
+    money: "422.12"
+  },
+  {
+    name: "沐浴按摩",
+    desc: now_time.month + "月12日21:34-乔杉沐浴城",
+    money: "318.00"
+  },
+  {
+    name: "食品酒水",
+    desc: now_time.month + "月1日21:34-school酒馆",
+    money: "289.50"
+  }
+]);
+
+const extend_level_bar = reactive([
+  { name: "低消费", range: "<2000元", width: "20%" },
+  { name: "中间消费", range: "2000-5000元", width: "35%" },
+  { name: "较高消费", range: "5000-8000元", width: "25%", state: 1 },
+  { name: "高消费", range: ">8000元", width: "20%" }
+]);
+
+const extend_morethan = ref("68%");
+
+const detail_list = reactive([
+  { date: now_time.month + "-01", time: "11:01", "type": "extend", money: "10.00", desc: "银行卡转出" },
+  { date: now_time.month + "-01", time: "13:45", "type": "income", money: "18.00", desc: "银行卡收入" },
+  { date: now_time.month + "-02", time: "06:21", "type": "extend", money: "123.45", desc: "信用卡转出" },
+  { date: now_time.month + "-03", time: "07:38", "type": "income", money: "23.00", desc: "银行卡收入" },
+  { date: now_time.month + "-08", time: "16:28", "type": "extend", money: "23.56", desc: "信用卡转出" },
+  { date: now_time.month + "-09", time: "15:25", "type": "income", money: "850.12", desc: "银行卡收入" },
+  { date: now_time.month + "-09", time: "18:52", "type": "income", money: "1.88", desc: "银行卡收入" },
+  { date: now_time.month + "-11", time: "21:12", "type": "extend", money: "220.21", desc: "银行卡转出" },
+  { date: now_time.month + "-12", time: "13:08", "type": "income", money: "32.28", desc: "银行卡收入" },
+  { date: now_time.month + "-12", time: "12:41", "type": "extend", money: "122.12", desc: "信用卡转出" },
+  { date: now_time.month + "-13", time: "17:21", "type": "income", money: "10.00", desc: "银行卡收入" }
+]);
+
+// 监听器
+watch(historyBtn, () => {
+  filterHistoryData();
+}, { deep: true });
+
+// 方法定义
+async function getData() {
+  uni.showLoading();
+  filterHistoryData();
+  for (let i = 0; i < expendDetail.series.length; i++) {
+    expendDetail.series[i].format = "pieDemo";
+  }
+  let length = expendDetail.series[0].data.length;
+  for (let i = 0; i < length; i++) {
+    expendCount.value += expendDetail.series[0].data[i].value;
+  }
+  await setTimeout(() => {
+    delayload.value = true;
+    uni.hideLoading();
+  }, 1000);
+}
+
+function changeHistoryBtn(type) {
+  for (let i = 0; i < historyBtn.length; i++) {
+    if (historyBtn[i].type == type) {
+      historyBtn[i].state = 1;
+    } else {
+      historyBtn[i].state = 0;
+    }
+  }
+}
+
+function filterHistoryData() {
+  let type = historyBtn.filter(x => x.state == 1)[0].type;
+  switch (type) {
+    case "expend":
+      historyData.value = dataOne.expend;
+      break;
+    case "income":
+      historyData.value = dataOne.income;
+      break;
+    case "remaining":
+      historyData.value = dataOne.remaining;
+      break;
+  }
+}
+
+function gotoBack() {
+  Common.navigateBack("/index/index");
+}
+
+function getImage(index) {
+  switch (index) {
+    case 0:
+      return "https://s1.ax1x.com/2023/03/31/ppRYrfP.png";
+    case 1:
+      return "https://s1.ax1x.com/2023/03/31/ppRYySf.png";
+    case 2:
+      return "https://s1.ax1x.com/2023/03/31/ppRY6l8.png";
+  }
+}
+
+// 生命周期
+onMounted(() => {
+  //#ifndef H5
+  uni.showShareMenu();
+  //#endif
+  getData();
+});
+</script>
 <template>
 	<view class="body">
 		<!-- <view class="topLine" :style="{height: topBar+'px'}"></view> -->
@@ -117,170 +281,6 @@
 		</view>
 	</view>
 </template>
-
-<script>
-import ProgressBar from "../../components/progress-bar/progress-bar.vue"
-import dataOne from '../../static/json/finance/1.json';
-import expendDetail from '../../static/json/finance/2.json';
-
-import Config from '../../static/js/config'
-import Common from '../../static/js/common'
-let _now = new Date();
-let now_time = {};
-now_time.year = _now.getFullYear()
-now_time.month = _now.getMonth() + 1
-now_time.day = _now.getDay()
-export default {
-	components: {
-		ProgressBar
-	},
-	data() {
-		return {
-			info: '大便超人', //用户数据
-			scrollHeight: "600px", //数据展示体高度
-			isCanvas2d: Config.ISCANVAS2D,
-			historyData: {},
-			dataOne,
-			expendDetail,
-			expendCount: 0,
-			delayload: false,
-			nowTime: {
-				year: now_time.year,
-				month: now_time.month,
-				day: now_time.day
-			},
-			historyBtn: [{
-				name: "支出",
-				state: 1,
-				type: "expend"
-			},
-			{
-				name: "收入",
-				state: 0,
-				type: "income"
-			},
-			{
-				name: "结余",
-				state: 0,
-				type: "remaining"
-			},
-			],
-			myWallet: {
-				remaining: 3000.34,
-				expend: 5240.32,
-				income: 8240.66
-			},
-			extendRank: [{
-				name: "腐败聚会",
-				desc: now_time.month + "月6日12:34-跨界空间轰趴",
-				money: "422.12"
-			},
-			{
-				name: "沐浴按摩",
-				desc: now_time.month + "月12日21:34-乔杉沐浴城",
-				money: "318.00"
-			},
-			{
-				name: "食品酒水",
-				desc: now_time.month + "月1日21:34-school酒馆",
-				money: "289.50"
-			},
-			],
-			extend_level_bar: [
-				{ name: "低消费", range: "<2000元", width: "20%" },
-				{ name: "中间消费", range: "2000-5000元", width: "35%" },
-				{ name: "较高消费", range: "5000-8000元", width: "25%", state: 1 },
-				{ name: "高消费", range: ">8000元", width: "20%" },
-			],
-			extend_morethan: "68%",
-			detail_list: [
-				{ date: now_time.month + "-01", time: "11:01", "type": "extend", money: "10.00", desc: "银行卡转出" },
-				{ date: now_time.month + "-01", time: "13:45", "type": "income", money: "18.00", desc: "银行卡收入" },
-				{ date: now_time.month + "-02", time: "06:21", "type": "extend", money: "123.45", desc: "信用卡转出" },
-				{ date: now_time.month + "-03", time: "07:38", "type": "income", money: "23.00", desc: "银行卡收入" },
-				{ date: now_time.month + "-08", time: "16:28", "type": "extend", money: "23.56", desc: "信用卡转出" },
-				{ date: now_time.month + "-09", time: "15:25", "type": "income", money: "850.12", desc: "银行卡收入" },
-				{ date: now_time.month + "-09", time: "18:52", "type": "income", money: "1.88", desc: "银行卡收入" },
-				{ date: now_time.month + "-11", time: "21:12", "type": "extend", money: "220.21", desc: "银行卡转出" },
-				{ date: now_time.month + "-12", time: "13:08", "type": "income", money: "32.28", desc: "银行卡收入" },
-				{ date: now_time.month + "-12", time: "12:41", "type": "extend", money: "122.12", desc: "信用卡转出" },
-				{ date: now_time.month + "-13", time: "17:21", "type": "income", money: "10.00", desc: "银行卡收入" },
-			]
-		};
-	},
-	watch: {
-		"historyBtn": {
-			deep: true,
-			handler: function (newVal, oldVal) {
-				this.filterHistoryData();
-			}
-		}
-	},
-	methods: {
-		async getData() {
-			uni.showLoading();
-			this.filterHistoryData();
-			for (let i = 0; i < this.expendDetail.series.length; i++) {
-				this.expendDetail.series[i].format = "pieDemo"
-			}
-			let length = this.expendDetail.series[0].data.length
-			for (let i = 0; i < length; i++) {
-				this.expendCount += this.expendDetail.series[0].data[i].value
-			}
-			await setTimeout(() => {
-				this.delayload = true;
-				uni.hideLoading();
-			}, 1000)
-		},
-		changeHistoryBtn(type) {
-			for (let i = 0; i < this.historyBtn.length; i++) {
-				if (this.historyBtn[i].type == type) {
-					this.historyBtn[i].state = 1
-				} else {
-					this.historyBtn[i].state = 0
-				}
-			}
-		},
-		filterHistoryData() {
-			let type = this.historyBtn.filter(x => x.state == 1)[0].type;
-			switch (type) {
-				case "expend":
-					this.historyData = this.dataOne.expend;
-					break;
-				case "income":
-					this.historyData = this.dataOne.income;
-					break;
-				case "remaining":
-					this.historyData = this.dataOne.remaining;
-					break;
-			}
-		},
-		gotoBack() {
-			Common.navigateBack("/index/index");
-		},
-		getImage(index) {
-			switch (index) {
-				case 0:
-					return "https://s1.ax1x.com/2023/03/31/ppRYrfP.png";
-					break;
-				case 1:
-					return "https://s1.ax1x.com/2023/03/31/ppRYySf.png";
-					break;
-				case 2:
-					return "https://s1.ax1x.com/2023/03/31/ppRY6l8.png";
-					break;
-			}
-		}
-	},
-	onReady() {
-		//#ifndef H5
-		uni.showShareMenu();
-		//#endif
-		this.getData()
-	}
-}
-</script>
-
 <style scoped lang="scss">
 .body {
 	height: 100%;

@@ -9,7 +9,6 @@ unpackage/
 
 # 忽略编辑器/IDE生成的文件和目录
 .idea/
-.vscode/
 .hbuilderx
 *.swp
 *.swo
