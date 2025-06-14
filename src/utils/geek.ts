@@ -1,65 +1,6 @@
 import { tansParams } from "./ruoyi";
 
 /**
- * 通配符比较
- * @param {*} str 待比较的字符串
- * @param {*} pattern 含有*或者?通配符的字符串
- * @returns
- */
-export function wildcardCompare(str: string, pattern: string): boolean {
-  const regex = pattern.replace(/[*?]/g, (match) => {
-    if (match === "*") {
-      return ".*";
-    } else if (match === "?") {
-      return ".";
-    } else {
-      return match;
-    }
-  });
-  const regexPattern = new RegExp("^" + regex + "$");
-  return regexPattern.test(str);
-}
-
-/**
- * 深度复制
- * @param obj 待复制的对象
- * @returns 复制的对象
- */
-export function deepClone(obj: any) {
-  if (obj == null || typeof obj !== "object") {
-    return obj;
-  }
-  let result;
-  if (Array.isArray(obj)) {
-    result = [];
-  } else {
-    result = new Map();
-  }
-  for (let [key, value] of Object.entries(obj)) {
-    // @ts-ignore
-    result[key] = deepClone(value);
-  }
-  return result;
-}
-
-/**
- * 深度复制
- * @param obj 待复制的对象
- * @param result 要复制到的对象
- * @returns 复制的对象
- */
-export function deepCloneTo<T>(obj: T, result: T) {
-  if (obj == null || typeof obj !== "object") {
-    return obj;
-  }
-  for (let [key, value] of Object.entries(obj)) {
-    // @ts-ignore
-    result[key] = deepClone(value);
-  }
-  return result;
-}
-
-/**
  * 获取uuid
  * @returns 生成的uuid字符串
  */
@@ -81,7 +22,7 @@ export function generateUUID(): string {
  * 获取code
  * @returns 生成的code字符串
  */
-export async function getWxCode(appid?: string,redirect_uri?:string) {
+export async function getWxCode(appid?: string, redirect_uri?: string) {
   // #ifdef H5
   if (appid == undefined || redirect_uri == undefined) return ""
   let code = "";
@@ -105,7 +46,7 @@ export async function getWxCode(appid?: string,redirect_uri?:string) {
   if (code == undefined || code == "" || code == null) {
     // 如果没有code，则去请求
     console.log("h5");
-     let href= "https://open.weixin.qq.com/connect/oauth2/authorize?"+
+    let href = "https://open.weixin.qq.com/connect/oauth2/authorize?" +
       tansParams({
         appid: appid,
         redirect_uri: redirect_uri,
@@ -114,10 +55,10 @@ export async function getWxCode(appid?: string,redirect_uri?:string) {
         state: "STATE",
       }) +
       "#wechat_redirect";
-      console.log(href);
-      setTimeout(() => {
-        window.location.href = href;
-      }, 5000);
+    console.log(href);
+    setTimeout(() => {
+      window.location.href = href;
+    }, 5000);
   } else {
     return code;
   }
