@@ -1,7 +1,7 @@
 <template>
   <view class="about-container">
     <view class="header-section text-center">
-      <image style="width: 150rpx;height: 150rpx;" src="/static/logo200.png" mode="widthFix">
+      <image style="width: 150rpx;height: 150rpx;" src="/static/logo.png" mode="widthFix">
       </image>
       <uni-title type="h2" title="若依移动端"></uni-title>
     </view>

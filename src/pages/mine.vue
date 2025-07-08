@@ -101,8 +101,6 @@ uni.$on('refresh', () => {
   avatar.value = userStore.avatar;
 })
 
-console.log(avatar.value)
-
 function handleToInfo() {
   uni.navigateTo({
     url: '/pages_mine/pages/info/index'
