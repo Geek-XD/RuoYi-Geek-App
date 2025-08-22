@@ -1,39 +1,3 @@
-<template>
-  <view class="normal-login-container">
-    <view class="logo-content align-center justify-center flex">
-      <image style="width: 100rpx;height: 100rpx;" :src="globalConfig.appInfo.logo" mode="widthFix">
-      </image>
-      <text class="title">若依移动端登录</text>
-    </view>
-    <view class="login-form-content">
-      <view class="input-item flex align-center">
-        <view class="iconfont icon-user icon"></view>
-        <input v-model="loginForm.username" class="input" type="text" placeholder="请输入账号" maxlength="30" />
-      </view>
-      <view class="input-item flex align-center">
-        <view class="iconfont icon-password icon"></view>
-        <input v-model="loginForm.password" type="password" class="input" placeholder="请输入密码" maxlength="20" />
-      </view>
-      <view class="input-item flex align-center" style="width: 60%;margin: 0px;" v-if="captchaEnabled">
-        <view class="iconfont icon-code icon"></view>
-        <input v-model="loginForm.code" type="number" class="input" placeholder="请输入验证码" maxlength="4" />
-        <view class="login-code">
-          <image :src="codeUrl" @click="getCode" class="login-code-img"></image>
-        </view>
-      </view>
-      <view class="action-btn">
-        <button @click="handleLogin" class="login-btn cu-btn block bg-blue lg round">登录</button>
-      </view>
-    </view>
-
-    <view class="xieyi text-center">
-      <text class="text-grey1">登录即代表同意</text>
-      <text @click="handleUserAgrement" class="text-blue">《用户协议》</text>
-      <text @click="handlePrivacy" class="text-blue">《隐私协议》</text>
-    </view>
-  </view>
-</template>
-
 <script setup>
 import modal from '@/plugins/modal'
 import { getCodeImg } from '@/api/login'
@@ -58,8 +22,8 @@ const loginForm = ref({
 if (useWxLogin.value) {
   getWxCode().then(res => {
     console.log(res);
-    wxLogin('miniapp',res).then(res => {
-      if(res.token != null){
+    wxLogin('miniapp', res).then(res => {
+      if (res.token != null) {
         setToken(res.token);
         loginSuccess()
       }
@@ -130,8 +94,42 @@ function handleUserAgrement() {
 
 getCode();
 </script>
+<template>
+  <view class="normal-login-container">
+    <view class="logo-content align-center justify-center flex">
+      <image style="width: 100rpx;height: 100rpx;" :src="globalConfig.appInfo.logo" mode="widthFix">
+      </image>
+      <text class="title">若依移动端登录</text>
+    </view>
+    <view class="login-form-content">
+      <view class="input-item flex align-center">
+        <view class="iconfont icon-user icon"></view>
+        <input v-model="loginForm.username" class="input" type="text" placeholder="请输入账号" maxlength="30" />
+      </view>
+      <view class="input-item flex align-center">
+        <view class="iconfont icon-password icon"></view>
+        <input v-model="loginForm.password" type="password" class="input" placeholder="请输入密码" maxlength="20" />
+      </view>
+      <view class="input-item flex align-center" style="width: 60%;margin: 0px;" v-if="captchaEnabled">
+        <view class="iconfont icon-code icon"></view>
+        <input v-model="loginForm.code" type="number" class="input" placeholder="请输入验证码" maxlength="4" />
+        <view class="login-code">
+          <image :src="codeUrl" @click="getCode" class="login-code-img"></image>
+        </view>
+      </view>
+      <view class="action-btn">
+        <button @click="handleLogin" class="login-btn cu-btn block bg-blue lg round">登录</button>
+      </view>
+    </view>
 
-<style lang="scss">
+    <view class="xieyi text-center">
+      <text class="text-grey1">登录即代表同意</text>
+      <text @click="handleUserAgrement" class="text-blue">《用户协议》</text>
+      <text @click="handlePrivacy" class="text-blue">《隐私协议》</text>
+    </view>
+  </view>
+</template>
+<style lang="scss" scoped>
 page {
   background-color: #ffffff;
 }

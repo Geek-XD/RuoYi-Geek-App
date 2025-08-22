@@ -1,12 +1,8 @@
 <script setup>
 import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
 
 const show = ref(false)
 const password = ref('')
-
-onLoad(() => {
-})
 
 const onChange = (val) => {
 	if (password.value.length < 6) {
@@ -25,10 +21,7 @@ const onBackspace = () => {
 }
 
 const pay = () => {
-	uni.showLoading({
-		title: '支付中'
-	})
-
+	uni.showLoading({ title: '支付中' })
 	setTimeout(() => {
 		uni.hideLoading()
 		show.value = false

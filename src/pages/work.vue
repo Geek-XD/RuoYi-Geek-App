@@ -75,110 +75,105 @@
 </template>
 
 <script setup>
-	import { ref } from "vue";
-  import modal from "@/plugins/modal"
-	const current=ref(0);
-	const swiperDotIndex=ref(0);
-	const data=ref([{
-            image: '/static/images/banner/banner01.jpg'
-          },
-          {
-            image: '/static/images/banner/banner02.jpg'
-          },
-          {
-            image: '/static/images/banner/banner03.jpg'
-          }
-        ]);
-	
-	function clickBannerItem(item) {
-	  console.info(item)
-	};
-	function changeSwiper(e) {
-	  current.value = e.detail.current
-	}
-	function changeGrid(e) {
-	  modal.showToast({
-	    title: '模块建设中',
-	    mask: false,
-		  icon:'loading',
-	    duration: 1000
-	  });
-	}
-	
+import { ref } from "vue";
+import modal from "@/plugins/modal"
+const current = ref(0);
+const swiperDotIndex = ref(0);
+const data = ref([
+  { image: '/static/images/banner/banner01.jpg' },
+  { image: '/static/images/banner/banner02.jpg' },
+  { image: '/static/images/banner/banner03.jpg' }
+]);
+
+function clickBannerItem(item) {
+  console.info(item)
+};
+function changeSwiper(e) {
+  current.value = e.detail.current
+}
+function changeGrid(e) {
+  modal.showToast({
+    title: '模块建设中',
+    mask: false,
+    icon: 'loading',
+    duration: 1000
+  });
+}
+
 </script>
 
 <style lang="scss">
+/* #ifndef APP-NVUE */
+page {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background-color: #fff;
+  min-height: 100%;
+  height: auto;
+}
+
+view {
+  font-size: 14px;
+  line-height: inherit;
+}
+
+/* #endif */
+
+.text {
+  text-align: center;
+  font-size: 26rpx;
+  margin-top: 10rpx;
+}
+
+.grid-item-box {
+  flex: 1;
   /* #ifndef APP-NVUE */
-  page {
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    background-color: #fff;
-    min-height: 100%;
-    height: auto;
-  }
-
-  view {
-    font-size: 14px;
-    line-height: inherit;
-  }
-
+  display: flex;
   /* #endif */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 0;
+}
 
-  .text {
-    text-align: center;
-    font-size: 26rpx;
-    margin-top: 10rpx;
-  }
+.uni-margin-wrap {
+  width: 690rpx;
+  width: 100%;
+  ;
+}
 
-  .grid-item-box {
-    flex: 1;
+.swiper {
+  height: 300rpx;
+}
+
+.swiper-box {
+  height: 150px;
+}
+
+.swiper-item {
+  /* #ifndef APP-NVUE */
+  display: flex;
+  /* #endif */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  height: 300rpx;
+  line-height: 300rpx;
+}
+
+@media screen and (min-width: 500px) {
+  .uni-swiper-dot-box {
+    width: 400px;
     /* #ifndef APP-NVUE */
-    display: flex;
+    margin: 0 auto;
     /* #endif */
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 15px 0;
+    margin-top: 8px;
   }
 
-  .uni-margin-wrap {
-    width: 690rpx;
+  .image {
     width: 100%;
-    ;
   }
-
-  .swiper {
-    height: 300rpx;
-  }
-
-  .swiper-box {
-    height: 150px;
-  }
-
-  .swiper-item {
-    /* #ifndef APP-NVUE */
-    display: flex;
-    /* #endif */
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: #fff;
-    height: 300rpx;
-    line-height: 300rpx;
-  }
-
-  @media screen and (min-width: 500px) {
-    .uni-swiper-dot-box {
-      width: 400px;
-      /* #ifndef APP-NVUE */
-      margin: 0 auto;
-      /* #endif */
-      margin-top: 8px;
-    }
-
-    .image {
-      width: 100%;
-    }
-  }
+}
 </style>

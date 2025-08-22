@@ -1,18 +1,3 @@
-<template>
-  <view class="content">
-    <image class="logo" src="@/static/logo.png"></image>
-    <view class="text-area">
-      <text class="title"> RuoYi-Geek-App</text>
-    </view>
-    <view class="text-area">
-      <up-text type="primary" text="uview-plus"></up-text>
-    </view>
-    <view class="charts-box">
-      <qiun-data-charts type="column" :chartData="chartData" />
-    </view>
-  </view>
-</template>
-
 <script setup>
 import { ref, onMounted } from 'vue';
 
@@ -40,8 +25,21 @@ function getServerData() {
   }, 500);
 }
 </script>
-
-<style scoped>
+<template>
+  <view class="content">
+    <image class="logo" src="@/static/logo.png"></image>
+    <view class="text-area">
+      <text class="title"> RuoYi-Geek-App</text>
+    </view>
+    <view class="text-area">
+      <up-text type="primary" text="uview-plus"></up-text>
+    </view>
+    <view class="charts-box">
+      <qiun-data-charts type="column" :chartData="chartData" />
+    </view>
+  </view>
+</template>
+<style scoped lang="scss">
 .content {
   display: flex;
   flex-direction: column;
