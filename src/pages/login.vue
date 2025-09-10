@@ -11,6 +11,9 @@ const userStore = useUserStore()
 const codeUrl = ref("");
 const captchaEnabled = ref(true); // 是否开启验证码
 const useWxLogin = ref(false); // 是否使用微信登录
+// #if MP-WEIXIN
+useWxLogin.value = true
+// #endif
 const globalConfig = ref(config);
 const loginForm = ref({
   username: "admin",
@@ -19,7 +22,7 @@ const loginForm = ref({
   uuid: ''
 });
 
-if (useWxLogin.value) {
+function handleLoginByWx() {
   getWxCode().then(res => {
     console.log(res);
     wxLogin('miniapp', res).then(res => {
@@ -119,6 +122,8 @@ getCode();
       </view>
       <view class="action-btn">
         <button @click="handleLogin" class="login-btn cu-btn block bg-blue lg round">登录</button>
+        <button @click="handleLoginByWx" v-if="useWxLogin"
+          class="login-btn cu-btn block bg-green lg round">微信一键登录</button>
       </view>
     </view>
 
@@ -180,10 +185,18 @@ page {
 
     }
 
-    .login-btn {
+    .action-btn {
       margin-top: 40px;
-      height: 45px;
+
+      .login-btn {
+        height: 45px;
+
+        &+.login-btn {
+          margin-top: 20px;
+        }
+      }
     }
+
 
     .xieyi {
       color: #333;
